@@ -97,7 +97,9 @@ print(x + 10); rem("Prints 21");
 ## Loicence notice
 
 EScript
+
 Object-oriented toy scripting language with text & graphical output
+
 Copyright (C) 2023 rdococ
 
 This program is free software: you can redistribute it and/or modify
