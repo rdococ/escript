@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head></head>
+    <body>
+        <style>
+            * {
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            :not(canvas) {
+                box-sizing: border-box;
+            }
+            textarea {
+                font-family: 'Lucida Console', 'Courier New', monospace;
+                resize: none;
+            }
+            
+            .container {
+                position: absolute;
+                top: 0px;
+                bottom: 0px;
+                left: 0px;
+                right: 0px;
+                
+                display: grid;
+                grid: 37.5vw / 50%;
+                grid-gap: 5px;
+                
+                padding: 5px;
+            }
+            .titlebar {
+                padding: 10px 5px;
+                
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+            }
+            .exampleSelector {
+                display: flex;
+                flex-direction: row;
+                
+                right: 0;
+            }
+            
+            #codeContainer {
+                grid-row-start: 1;
+                grid-row-end: 3;
+                
+                display: flex;
+                flex-direction: column;
+            }
+            #codebox {
+                flex-grow: 1;
+            }
+            
+            #outputContainer {
+                grid-column-start: 2;
+                
+                display: flex;
+                flex-direction: column;
+            }
+            #outputbox {
+                flex-grow: 1;
+            }
+            
+            #canvas {
+                grid-column-start: 2;
+                width: 100%;
+                height: 100%;
+                
+                border: 1px solid black;
+            }
+        </style>
+        
+        <div class="container">
+            <div id="codeContainer">
+                <div class="titlebar">
+                    <div class="title">Code</div>
+                    <div class="exampleSelector">
+                        <div class="title">Example&nbsp;</div>
+                        <select id="exampleList">
+                            <option value=""></option>
+                            <option value="syntax">Syntax demo</option>
+                            <option value="box">Bouncing box</option>
+                        </select>
+                    </div>
+                </div>
+                <textarea id="codebox"></textarea>
+            </div>
+            <canvas id="canvas" width="960" height="720"></canvas>
+            <div id="outputContainer">
+                <div class="titlebar">Output</div>
+                <textarea id="outputbox" readonly></textarea>
+            </div>
+        </div>
+        
+        <script src="escript.js"></script>
+        <object width="0" height="0" id="prelude" type="application/json" data="prelude.esc"></object>
+    </body>
+</html>
