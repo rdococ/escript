@@ -2,28 +2,97 @@
 
 If I had a nickel for every purely object-oriented toy scripting language I've made, I would have two nickels. Which isn't a lot, but it's weird that it happened twice.
 
+## Feature rundown
+
+* No classes, instead there are just object literals
+* Variables/properties define getter/setter method pairs
+* Function calls are implicit method calls to the lexical scope
+* Concise lambda syntax and lexical returns allow traditional control flow to be implemented in the prelude
+* Very good at mimicking non-object-oriented programming styles
+
+## Examples
+
+Example class
+
 ```
-vx := 5; vy := 5;
-x := 0; y := 0;
+Person(name, age) -> (|
+    name := name;
+    age := age;
+    
+    talk -> print("Hello there, my name is " ++ name ++ "!");
+|);
+
+bob := Person("Bob", 21);
+```
+
+Bouncing "ball" (square until I add more canvas methods ;) ) example
+
+```
+ball(colour, x, y, vx, vy, size) -> (|
+  tick -> (
+    canvas fillRect(colour, x, y, size, size);
+
+    x <- x + vx;
+    y <- y + vy;
+
+    if (x > 960 - size, ->
+      vx <- vx abs negated)
+    elseif (x < 0, ->
+      vx <- vx abs);
+  
+    if (y > 720 - size, ->
+      vy <- vy abs negated)
+    elseif (y < 0, ->
+      vy <- vy abs)
+  )
+|);
+
+b1 := ball("#FF0000", 0, 0, 5, 5, 40, 40);
+b2 := ball("#00FF00", 480, 0, 5, 5, 80, 80);
 
 forever (->
   canvas clear;
-  canvas fillRect("#FF0000", x, y, 40, 40);
-
-  x <- x + vx;
-  y <- y + vy;
-
-  if (x > 920, ->
-    vx <- vx abs negated)
-  elseif (x < 0, ->
-    vx <- vx abs);
-  
-  if (y > 680, ->
-    vy <- vy abs negated)
-  elseif (y < 0, ->
-    vy <- vy abs)
+  b1 tick;
+  b2 tick;
 );
 ```
+
+Fizzbuzz and factorial
+
+```
+fizzbuzz(n) -> (
+  string := "";
+  if (n % 3 = 0, ->
+    string <- string ++ "fizz");
+  if (n % 5 = 0, ->
+    string <- string ++ "buzz");
+  if (string = "", -> n) else (-> string)
+);
+
+factorial(n) -> (
+  if (n = 1, ->
+    1
+  ) else (->
+    n * factorial(n - 1)
+  );
+);
+
+print(fizzbuzz(15));
+print(factorial(10));
+```
+
+What's 9 + 10?
+
+```
+rem -> ();
+
+x := (| := 9; + x -> 11 + x |);
+
+print(x * 1); rem("Prints 9");
+print(x + 10); rem("Prints 21");
+```
+
+
 
 ## Loicence notice
 
