@@ -79,15 +79,15 @@ class Lexer {
         } else if (char === "^") {
             this.reader.read();
             this.token = new ReturnToken();
+        } else if (this.reader.peek() === "=" && !Lexer.operators.includes(this.reader.peek(2).at(1))) {
+            this.reader.read();
+            this.token = new AssignmentToken();
         } else if (this.reader.peek(2) === ":=") {
             this.reader.read(2);
             this.token = new PropertyDefToken();
         } else if (this.reader.peek(2) === "->") {
             this.reader.read(2);
             this.token = new MethodDefToken();
-        } else if (this.reader.peek(2) === "<-") {
-            this.reader.read(2);
-            this.token = new AssignmentToken();
         } else if (char === "\"" || char === "'") {
             this.token = this.lexString(char);
         } else if (Lexer.numerics.includes(char) || (char === "-" || char === ".") && Lexer.numerics.includes(this.reader.peek(2).at(1))) {
@@ -185,14 +185,14 @@ class Parser {
 }
 
 /*
-h, g; f := e <- i & d > c + b * a method()
+h, g; f := e = i & d > c + b * a method()
 highest
 N   method()
     * / %
     +
     < = >
     & |
-    <-
+    =
     := -> (right-associative)
     ;
     ,
@@ -288,7 +288,7 @@ class AssignmentToken {
     
     tail (parser, head) {
         // head should be SelfCall/Call term
-        head.method = head.method + "<-";
+        head.method = head.method + "=";
         
         if (parser.peek() instanceof OpenExpressionToken) {
             head.args.push(parser.parse(PREC_SEQUENCE));
@@ -729,7 +729,7 @@ class EObject {
     
     defineProperty (name, value) {
         this.methods[name] = new EGetter(this, name);
-        this.methods["" + name + "<-"] = new ESetter(this, name);
+        this.methods["" + name + "="] = new ESetter(this, name);
         this.fields[name] = value;
     }
 }
@@ -816,13 +816,13 @@ class VM {
     }
     
     jump (frame) {
-        console.log("jump", frame);
+        // console.log("jump", frame);
         this.frame = frame;
         this.errorFrame = frame;
     }
     
     push (frame) {
-        console.log("push", frame);
+        // console.log("push", frame);
         frame.pushed(this.frame, this.tailCaller !== null ? this.tailCaller : this.frame);
         
         this.frame = frame;
@@ -831,7 +831,7 @@ class VM {
         this.tailCaller = null;
     }
     pop () {
-        console.log("pop", this.frame);
+        // console.log("pop", this.frame);
         this.tailCaller = this.frame;
         this.frame = this.frame.caller;
     }
@@ -890,8 +890,12 @@ function wrap(value) {
         object.methods["at"] = new EPrimitive((index) => {
             vm.receive(wrap(value.at(index.value)));
         });
-        object.methods["="] = new EPrimitive((other) => {
+        object.methods["=="] = new EPrimitive((other) => {
             vm.receive(wrap(value === other.value));
+        });
+        
+        object.methods["asString"] = new EPrimitive(() => {
+            vm.receive(object);
         });
         
         return object;
@@ -914,6 +918,13 @@ function wrap(value) {
             vm.receive(wrap(remainder < 0 ? remainder + Math.abs(other.value) : remainder));
         });
         
+        object.methods["degToRad"] = new EPrimitive(() => {
+            vm.receive(wrap(value * Math.PI / 180));
+        });
+        object.methods["radToDeg"] = new EPrimitive(() => {
+            vm.receive(wrap(value * 180 / Math.PI));
+        });
+        
         object.methods["abs"] = new EPrimitive(() => {
             vm.receive(wrap(Math.abs(value)));
         });
@@ -921,19 +932,19 @@ function wrap(value) {
             vm.receive(wrap(-value));
         });
         object.methods["sin"] = new EPrimitive(() => {
-            vm.receive(Math.sin(value));
+            vm.receive(wrap(Math.sin(value)));
         });
         object.methods["cos"] = new EPrimitive(() => {
-            vm.receive(Math.cos(value));
+            vm.receive(wrap(Math.cos(value)));
         });
         object.methods["tan"] = new EPrimitive(() => {
-            vm.receive(Math.tan(value));
+            vm.receive(wrap(Math.tan(value)));
         });
         
         object.methods["<"] = new EPrimitive((other) => {
             vm.receive(wrap(value < other.value));
         });
-        object.methods["="] = new EPrimitive((other) => {
+        object.methods["=="] = new EPrimitive((other) => {
             vm.receive(wrap(value === other.value));
         });
         object.methods[">"] = new EPrimitive((other) => {
@@ -946,6 +957,10 @@ function wrap(value) {
             vm.receive(wrap(value >= other.value));
         });
         
+        object.methods["asString"] = new EPrimitive(() => {
+            vm.receive(wrap("" + value));
+        });
+        
         return object;
     } else if (typeof value === "boolean") {
         object.methods["test"] = new EPrimitive((trueBody, falseBody) => {
@@ -954,6 +969,17 @@ function wrap(value) {
                 return;
             }
             falseBody.callMethod("call");
+        });
+        
+        object.methods["&"] = new EPrimitive((other) => {
+            vm.receive(wrap(value && other.value !== false));
+        });
+        object.methods["|"] = new EPrimitive((other) => {
+            vm.receive(wrap(value || other.value !== false));
+        });
+        
+        object.methods["asString"] = new EPrimitive(() => {
+            vm.receive(wrap("" + value));
         });
         
         return object;
@@ -970,10 +996,21 @@ const codebox = document.getElementById("codebox");
 const outputbox = document.getElementById("outputbox");
 const exampleList = document.getElementById("exampleList");
 
+let mouse = {x: 0, y: 0, pressed: false};
+
+window.addEventListener('mousemove', (event) => {
+    rect = canvas.getBoundingClientRect();
+    mouse.x = Math.round((event.clientX - rect.left) * 960 / rect.width);
+    mouse.y = Math.round((event.clientY - rect.top) * 720 / rect.height);
+});
+
+window.addEventListener("mousedown", () => {mouse.pressed = true});
+window.addEventListener("mouseup", () => {mouse.pressed = false});
+
 function createEnv() {
     const env = new EObject();
     
-    env.methods["print"] = new EPrimitive((content) => {
+    env.methods["basicPrint"] = new EPrimitive((content) => {
         outputbox.appendChild(document.createTextNode(content.value + "\n"));
         vm.receive(eNull);
     });
@@ -1009,11 +1046,25 @@ function createEnv() {
     });
     eCanvas.methods["line"] = new EPrimitive((colour, startX, startY, endX, endY) => {
         ctx.strokeStyle = colour.value;
+        ctx.beginPath();
         ctx.moveTo(startX.value, startY.value);
         ctx.lineTo(endX.value, endY.value);
         ctx.stroke();
         vm.receive(eNull);
     });
+    eCanvas.methods["write"] = new EPrimitive((text, colour, x, y) => {
+        ctx.font = "30px Arial";
+        ctx.fillStyle = colour.value;
+        ctx.fillText(text.value, x.value, y.value);
+        vm.receive(eNull);
+    });
+    
+    const eMouse = new EObject();
+    env.defineProperty("mouse", eMouse);
+    
+    eMouse.methods["x"] = new EPrimitive(() => vm.receive(wrap(mouse.x)));
+    eMouse.methods["y"] = new EPrimitive(() => vm.receive(wrap(mouse.y)));
+    eMouse.methods["pressed"] = new EPrimitive(() => vm.receive(wrap(mouse.pressed)));
     
     return env;
 }
@@ -1023,15 +1074,67 @@ eNull.value = null;
 
 const prelude = `
 forever(body) -> (
-    body call;
-    wait;
-    forever(body);
+  body call;
+  wait;
+  forever(body);
 );
-
 if(cond, body) -> (
-    cond test (-> (| else := body call; elseif := else; |), -> (| else(body) -> body call; elseif(cond, body) -> if(cond, body) |));
+  cond test (-> (| else := body call; elseif := else; |), -> (| else(body) -> body call; elseif(cond, body) -> if(cond, body) |));
 );
+not(cond) -> if (cond, -> false) else (-> true);
 
+print(str) -> basicPrint(str asString);
+
+Point(x, y) -> (|
+  x := x;
+  y := y;
+
+  + other -> Point(x + other x, y + other y);
+  - other -> Point(x - other x, y - other y);
+  * scalar -> Point(x * scalar, y * scalar);
+  / scalar -> Point(x / scalar, y / scalar);
+
+  < other -> x < other x & y < other y;
+  <= other -> x <= other x & y <= other y;
+  == other -> x == other x & y == other y;
+  >= other -> x >= other x & y >= other y;
+  > other -> x > other x & y > other y;
+
+  asString -> "Point(" ++ x asString ++ ", " ++ y asString ++ ")";
+|);
+
+Pen() -> (|
+  _pos := Point(480, 360);
+  direction := 0;
+  
+  pressed := false;
+  colour := "#000000";
+  
+  position -> _pos;
+  position = newPos -> (
+    if (pressed, ->
+      canvas line(colour, position x, position y, newPos x, newPos y)
+    );
+    _pos = newPos;
+  );
+  
+  move(steps) -> (
+    newPos := position + Point(steps * direction degToRad cos, steps * direction degToRad sin);
+    if (pressed, ->
+      canvas line(colour, position x, position y, newPos x, newPos y)
+    );
+    position = newPos;
+  );
+  turnLeft(angle) -> (
+    direction = direction + angle;
+  );
+  turnRight(angle) -> (
+    direction = direction - angle;
+  );
+  
+  down -> pressed = true;
+  up -> pressed = false;
+|);
 `
 
 const examples = Object.create(null);
@@ -1069,8 +1172,8 @@ print(bob name);
 bob talk;
 
 # Assign new values to existing variables:
-x <- 4;
-bob name <- "Robert";
+x = 4;
+bob name = "Robert";
 bob talk;
 `;
 examples.box = `vx := 5; vy := 5;
@@ -1080,20 +1183,55 @@ forever (->
   canvas clear;
   canvas fillRect("#FF0000", x, y, 40, 40);
 
-  x <- x + vx;
-  y <- y + vy;
+  x = x + vx;
+  y = y + vy;
 
   if (x > 920, ->
-    vx <- vx abs negated)
+    vx = vx abs negated)
   elseif (x < 0, ->
-    vx <- vx abs);
+    vx = vx abs);
   
   if (y > 680, ->
-    vy <- vy abs negated)
+    vy = vy abs negated)
   elseif (y < 0, ->
-    vy <- vy abs)
+    vy = vy abs)
 );
 `;
+examples.tree = `pen := Pen();
+
+recurse(depth) -> (
+  if (depth <= 0, -> ^);
+  
+  pen down;
+  pen move(5 * depth);
+  pen up;
+  
+  pen turnLeft(10);
+  recurse(depth - 1);
+  pen turnRight(20);
+  recurse(depth - 1);
+  pen turnLeft(10);
+  
+  pen move(-5 * depth);
+);
+
+recurse(10);
+`;
+examples.paint = `pen := Pen();
+wasPressed := false;
+
+forever(->
+  if (mouse pressed & not(wasPressed), ->
+    pen down;
+  );
+  if (not(mouse pressed) & wasPressed, ->
+    pen up;
+  );
+  pen position = Point(mouse x, mouse y);
+
+  wasPressed = mouse pressed;
+);
+`
 
 
 function run(code) {
