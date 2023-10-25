@@ -1124,9 +1124,6 @@ Pen() -> (|
   
   move(steps) -> (
     newPos := position + Point(steps * direction degToRad cos, steps * direction degToRad sin);
-    if (pressed, ->
-      canvas line(colour, position x, position y, newPos x, newPos y)
-    );
     position = newPos;
   );
   turnLeft(angle) -> (
