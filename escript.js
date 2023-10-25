@@ -556,6 +556,10 @@ class DelegateTerm {
             frame.context.methods[method] = delegate.methods[method];
         }
         
+        if (delegate.value !== undefined) {
+            frame.context.value = delegate.value;
+        }
+        
         vm.pop();
         vm.receive(frame.context);
     }
