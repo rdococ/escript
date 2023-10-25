@@ -32,18 +32,18 @@ ball(colour, x, y, vx, vy, size) -> (|
   tick -> (
     canvas fillRect(colour, x, y, size, size);
 
-    x <- x + vx;
-    y <- y + vy;
+    x = x + vx;
+    y = y + vy;
 
     if (x > 960 - size, ->
-      vx <- vx abs negated)
+      vx = vx abs negated)
     elseif (x < 0, ->
-      vx <- vx abs);
+      vx = vx abs);
   
     if (y > 720 - size, ->
-      vy <- vy abs negated)
+      vy = vy abs negated)
     elseif (y < 0, ->
-      vy <- vy abs)
+      vy = vy abs)
   )
 |);
 
@@ -62,15 +62,15 @@ Fizzbuzz and factorial
 ```
 fizzbuzz(n) -> (
   string := "";
-  if (n % 3 = 0, ->
-    string <- string ++ "fizz");
-  if (n % 5 = 0, ->
-    string <- string ++ "buzz");
+  if (n % 3 == 0, ->
+    string = string ++ "fizz");
+  if (n % 5 == 0, ->
+    string = string ++ "buzz");
   if (string = "", -> n) else (-> string)
 );
 
 factorial(n) -> (
-  if (n = 1, ->
+  if (n == 1, ->
     1
   ) else (->
     n * factorial(n - 1)
@@ -81,15 +81,13 @@ print(fizzbuzz(15));
 print(factorial(10));
 ```
 
-What's 9 + 10?
+But what's 9 + 10?
 
 ```
-rem -> ();
-
 x := (| := 9; + x -> 11 + x |);
 
-print(x * 1); rem("Prints 9");
-print(x + 10); rem("Prints 21");
+print(x * 1); # prints 9
+print(x + 10); # prints 21
 ```
 
 
