@@ -61,11 +61,11 @@ class Lexer {
         } else if (char === ";") {
             this.reader.read();
             this.token = new SequenceToken();
-        } else if (this.reader.peek(2) === "(|") {
-            this.reader.read(2);
+        } else if (char === "{") {
+            this.reader.read();
             this.token = new OpenObjectToken();
-        } else if (this.reader.peek(2) === "|)") {
-            this.reader.read(2);
+        } else if (char === "}") {
+            this.reader.read();
             this.token = new CloseObjectToken();
         } else if (char === "(") {
             this.reader.read();
@@ -536,7 +536,7 @@ class ObjectTerm {
     }
     
     toString() {
-        return "(| " + this.expression + " |)";
+        return "{ " + this.expression + " }";
     }
 }
 class DelegateTerm {
@@ -1083,13 +1083,13 @@ forever(body) -> (
   forever(body);
 );
 if(cond, body) -> (
-  cond test (-> (| else := body call; elseif := else; |), -> (| else(body) -> body call; elseif(cond, body) -> if(cond, body) |));
+  cond test (-> { else := body call; elseif := else; }, -> { else(body) -> body call; elseif(cond, body) -> if(cond, body) });
 );
 not(cond) -> if (cond, -> false) else (-> true);
 
 print(str) -> basicPrint(str asString);
 
-Point(x, y) -> (|
+Point(x, y) -> {
   x := x;
   y := y;
 
@@ -1105,9 +1105,9 @@ Point(x, y) -> (|
   > other -> x > other x & y > other y;
 
   asString -> "Point(" ++ x asString ++ ", " ++ y asString ++ ")";
-|);
+};
 
-Pen() -> (|
+Pen() -> {
   _pos := Point(480, 360);
   direction := 0;
   
@@ -1122,20 +1122,24 @@ Pen() -> (|
     _pos = newPos;
   );
   
-  move(steps) -> (
+  forward(steps) -> (
     newPos := position + Point(steps * direction degToRad cos, steps * direction degToRad sin);
     position = newPos;
   );
-  turnLeft(angle) -> (
+  left(angle) -> (
     direction = direction + angle;
   );
-  turnRight(angle) -> (
+  right(angle) -> (
     direction = direction - angle;
   );
   
   down -> pressed = true;
   up -> pressed = false;
-|);
+};
+
+Event() -> {
+  
+};
 `
 
 const examples = Object.create(null);
@@ -1163,10 +1167,10 @@ hello;
 print(factorial(10));
 
 # Create an object:
-bob := (|
+bob := {
   name := "Bob";
   talk -> (print("Eyup there, I'm " ++ name ++ "!"));
-|);
+};
 
 # Access object variables and functions:
 print(bob name);
@@ -1204,16 +1208,16 @@ recurse(depth) -> (
   if (depth <= 0, -> ^);
   
   pen down;
-  pen move(5 * depth);
+  pen forward(5 * depth);
   pen up;
   
-  pen turnLeft(10);
+  pen left(10);
   recurse(depth - 1);
-  pen turnRight(20);
+  pen right(20);
   recurse(depth - 1);
-  pen turnLeft(10);
+  pen left(10);
   
-  pen move(-5 * depth);
+  pen forward(-5 * depth);
 );
 
 recurse(10);

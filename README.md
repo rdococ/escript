@@ -4,23 +4,22 @@ If I had a nickel for every purely object-oriented toy scripting language I've m
 
 ## Feature rundown
 
-* No classes, instead there are just object literals
-* Variables/properties define getter/setter method pairs
-* Function calls are implicit method calls to the lexical scope
-* Concise lambda syntax and lexical returns allow traditional control flow to be implemented in the prelude
-* Very good at mimicking non-object-oriented programming styles
+* Object literals instead of classes or prototypes
+* Variables and properties are the same thing
+* Getters & setters are identical to regular methods
+* Concise lambda syntax & lexical returns for custom control flow
 
 ## Examples
 
 Example class
 
 ```
-Person(name, age) -> (|
+Person(name, age) -> {
     name := name;
     age := age;
     
     talk -> print("Hello there, my name is " ++ name ++ "!");
-|);
+};
 
 bob := Person("Bob", 21);
 ```
@@ -28,7 +27,7 @@ bob := Person("Bob", 21);
 Bouncing "ball" (square until I add more canvas methods ;) ) example
 
 ```
-ball(colour, x, y, vx, vy, size) -> (|
+ball(colour, x, y, vx, vy, size) -> {
   tick -> (
     canvas fillRect(colour, x, y, size, size);
 
@@ -45,7 +44,7 @@ ball(colour, x, y, vx, vy, size) -> (|
     elseif (y < 0, ->
       vy = vy abs)
   )
-|);
+};
 
 b1 := ball("#FF0000", 0, 0, 5, 5, 40, 40);
 b2 := ball("#00FF00", 480, 0, 5, 5, 80, 80);
@@ -84,7 +83,7 @@ print(factorial(10));
 But what's 9 + 10?
 
 ```
-x := (| := 9; + x -> 11 + x |);
+x := { := 9; + x -> 11 + x };
 
 print(x * 1); # prints 9
 print(x + 10); # prints 21
